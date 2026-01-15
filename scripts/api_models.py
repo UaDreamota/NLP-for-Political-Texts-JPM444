@@ -1,11 +1,12 @@
-# A place to look for api models
+# for api models
 # Planned: ChatGPT, Anthropic, Grok/Gemini
 # I need to add the function that would take the proper 
 
 
 import os
-import dotenv
+from dotenv import load_dotenv
 from pathlib import Path
+import json
 
 import random
 import pandas as pd
@@ -14,10 +15,10 @@ from openai import OpenAI
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 
-from utils.data_processing import load_processing
+from scripts.data_processing import load_processing
 
 target_var = None #political or domestic
-
+bg = None
 
 random.seed(42)
 
@@ -26,19 +27,30 @@ load_dotenv(REPO_ROOT / ".env")
 
 TOKEN = os.environ["OPENAI_API_KEY"]
 
+client = OpenAI(api_key=TOKEN)
+MODEL = "gpt-5-mini"
+model = MODEL
+
+SYSTEM = "Return only valid JSON. No extra text."
+
+PROMPT = ""
+
+
+
 def split_data(target):
     if target not in ['domestic','political']:
         raise ValueError("Incorrect target variable. Only 'domestic' or 'political' are allowed")
     global target_var
     target_var = target
-    return X_train, X_test, y_train, y_test = train_test_split(bg['description'], bg[target], test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(bg['description'], bg[target], test_size=0.2, random_state=42)
+    return  X_train, X_test, y_train, y_test
 
-
-def predict_one(txt)
+def predict_one(txt, json_key):
         resp = client.chat.completions.create(
             model=model,
-            temperature=0,
             response_format={"type": "json_object"},
+            max_tokens = 20,
+            temperature=0,
             messages=[
                 {"role": "system", "content": SYSTEM},
                 {"role": "user", "content": PROMPT.format(txt=str(txt))},
@@ -50,23 +62,53 @@ def predict_one(txt)
             raise ValueError(f"Bad prediction value for {json_key}: {pred}")
         return pred
 
-client = OpenAI(api_key=TOKEN)
-model = MODEL
-
-SYSTEM = "Return only valid JSON. No extra text."
-
-PROMPT = ""
-
 
 def send_requests(target_var):
-    bg = load_processing(../belgium_newspaper_new_filter.csv)
+    global bg, PROMPT
+    bg = load_processing("../belgium_newspaper_new_filter.csv")
+    out_path = f"predictions_{target_var}_{model}.csv".replace("/", "_")
+    if os.path.exists(out_path):
+        pred_df = pd.read_csv(out_path)
+        f1 = f1_score(pred_df["y_true"], pred_df["y_pred"], pos_label=1)
+        print(f"[cache] Loaded predictions from {out_path}")
+        print(f"F1 (pos_label=1): {f1:.4f}")
+        return f1
+
     X_train, X_test, y_train, y_test = split_data(target_var)
     if target_var == "political":
-        PROMPT =
+        json_key = "political"
+        PROMPT = """You are a political expert that knows all languages in the world. you are given articles \
+        from dutch newspaper with ranging from 1999 to 2008. you need to critically assess whether this\
+        article's topic is politics. if so, code it as 1, otherwise code it as 0.
+        Return JSON exactly: {"political": 0 or 1}
+
+        Text:
+        {txt}"""
     elif target_var == "domestic":
-        PROMPT = 
+        json_key = "domestic"
+        PROMPT = """You are a political expert that knows all languages in the world. you are given articles \
+        from dutch newspaper with ranging from 1999 to 2008. you need to critically assess whether this\
+        article's topic is about domestic politics issue or international. \
+        if it is about domestic issue, code it as 1, otherwise code it as 0.
+        Return JSON exactly: {"domestic": 0 or 1}
+
+        Text:
+        {txt}"""
     else:
         raise ValueError("Incorrect target variable. Only 'domestic' or 'political' are allowed")
-    return None
 
+    if PROMPT.strip() == "":
+        raise ValueError("No prompt was selected, but the variable is set correctly")
 
+    y_pred = [predict_one(txt, json_key=json_key) for txt in X_test]
+
+    f1 = f1_score(y_test, y_pred, pos_label=1)
+    print(f"Target: {target_var}")
+    print(f"Test size: {len(y_test)}")
+    print(f"Positive rate: {sum(y_test)/len(y_test):.4f}")
+    print(f"F1 (pos_label=1): {f1:.4f}")
+   
+    pred_df = pd.DataFrame({"y_true": list(y_test), "y_pred": y_pred})
+    pred_df.to_csv(out_path, index=False)
+
+    return f1 
