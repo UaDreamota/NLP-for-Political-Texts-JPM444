@@ -191,8 +191,9 @@ def run_baselines(
 
 
 def main():
-    bg = load_processing("")
-    pass
+    data_path = "data/belgium_newspaper_new_filter.csv"
+    bg = load_processing(data_path)
+    return bg
 
 
 if __name__ == "__main__":

@@ -71,7 +71,7 @@ def predict_one(txt, json_key):
 def send_requests(target_var, data_path=None):
     global bg, PROMPT
     if data_path is None:
-        data_path = REPO_ROOT / "belgium_newspaper_new_filter.csv"
+        data_path = REPO_ROOT / "data" / "belgium_newspaper_new_filter.csv"
     bg = load_processing(data_path)
     out_path = f"predictions_{target_var}_{model}.csv".replace("/", "_")
     if os.path.exists(out_path):

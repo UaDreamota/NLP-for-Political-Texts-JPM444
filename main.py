@@ -1,11 +1,11 @@
 import argparse
 
-from bulk_parizek import run_baselines
+from scripts.baselines_bulk import run_baselines
 
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--data", default="belgium_newspaper_new_filter.csv", type=str, help="Path to the dataset")
+parser.add_argument("--data", default="data/belgium_newspaper_new_filter.csv", type=str, help="Path to the dataset")
 #I plan to add: (1) Which bulk of models to use: scikit-learn, berts or apis with potential DeepLearning(?)
 #I plan to add: (2) Maybe some general hyperparameters for each model? 
 #I plan to add: (3) Path for inference? 
