@@ -32,7 +32,7 @@ parser.add_argument("--bert_batch_size", default=8, type=int, help="Per-device b
 parser.add_argument("--bert_zero_model", default=None, type=str, help="Zero-shot model name")
 parser.add_argument("--bert_zero_max_samples", default=None, type=int, help="Limit zero-shot samples for speed")
 parser.add_argument("--bert_zero_batch_size", default=8, type=int, help="Zero-shot pipeline batch size")
-
+parser.add_argument("--seed", default=42, type=int, help="Random seed for replication")
 
 def main(main_args):
     if main_args.baseline_training:

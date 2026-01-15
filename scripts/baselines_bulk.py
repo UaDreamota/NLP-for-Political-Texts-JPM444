@@ -46,12 +46,12 @@ models = [
         name="tfidf_linear_svm",
         pipe=Pipeline([("vec", TfidfVectorizer()), ("clf", LinearSVC(max_iter=5000))]),
         params={
-            "vec__ngram_range": [(1, 1), (1, 2), (3, 6)],
+            "vec__ngram_range": [(1, 1), (3, 6)],
             "vec__min_df": [1, 2],
             "vec__max_df": [0.9, 1.0],
             "vec__max_features": [None, 10000, 20000],
             "vec__sublinear_tf": [False, True],
-            "clf__C": [0.1, 1.0, 3, 10.0],
+            "clf__C": [0.1, 1.0, 3],
             "clf__class_weight": [None, "balanced"],
 
         },
