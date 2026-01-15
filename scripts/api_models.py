@@ -25,9 +25,6 @@ random.seed(42)
 REPO_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(REPO_ROOT / ".env")
 
-TOKEN = os.environ["OPENAI_API_KEY"]
-
-client = OpenAI(api_key=TOKEN)
 MODEL = "gpt-5-mini"
 model = MODEL
 
@@ -45,7 +42,15 @@ def split_data(target):
     X_train, X_test, y_train, y_test = train_test_split(bg['description'], bg[target], test_size=0.2, random_state=42)
     return  X_train, X_test, y_train, y_test
 
+def _get_client():
+    token = os.getenv("OPENAI_API_KEY")
+    if not token:
+        raise EnvironmentError("Missing OPENAI_API_KEY; set it in .env or your shell")
+    return OpenAI(api_key=token)
+
+
 def predict_one(txt, json_key):
+        client = _get_client()
         resp = client.chat.completions.create(
             model=model,
             response_format={"type": "json_object"},
@@ -63,9 +68,11 @@ def predict_one(txt, json_key):
         return pred
 
 
-def send_requests(target_var):
+def send_requests(target_var, data_path=None):
     global bg, PROMPT
-    bg = load_processing("../belgium_newspaper_new_filter.csv")
+    if data_path is None:
+        data_path = REPO_ROOT / "belgium_newspaper_new_filter.csv"
+    bg = load_processing(data_path)
     out_path = f"predictions_{target_var}_{model}.csv".replace("/", "_")
     if os.path.exists(out_path):
         pred_df = pd.read_csv(out_path)
