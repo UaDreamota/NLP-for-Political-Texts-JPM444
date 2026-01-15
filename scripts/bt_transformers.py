@@ -76,21 +76,17 @@ def train_transformer_model(
     eval_ds = TorchDataset(X_test, y_test, tokenizer, max_length=max_length)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-    training_args = TrainingArguments(
+    base_args = dict(
         output_dir=output_dir,
         num_train_epochs=epochs,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         learning_rate=lr,
         weight_decay=weight_decay,
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        load_best_model_at_end=True,
-        metric_for_best_model="f1",
-        save_total_limit=1,
         logging_steps=50,
         report_to="none",
     )
+    training_args = _build_training_args(base_args)
 
     trainer = Trainer(
         model=model,
@@ -106,6 +102,42 @@ def train_transformer_model(
     metrics = trainer.evaluate()
     print(f"[transformers] Eval metrics: {metrics}")
     return metrics
+
+
+def _build_training_args(base_args):
+    try:
+        return TrainingArguments(
+            **base_args,
+            evaluation_strategy="epoch",
+            save_strategy="epoch",
+            load_best_model_at_end=True,
+            metric_for_best_model="f1",
+            save_total_limit=1,
+        )
+    except TypeError:
+        pass
+
+    try:
+        return TrainingArguments(
+            **base_args,
+            eval_strategy="epoch",
+            save_strategy="epoch",
+            load_best_model_at_end=True,
+            metric_for_best_model="f1",
+            save_total_limit=1,
+        )
+    except TypeError:
+        pass
+
+    legacy_args = dict(base_args)
+    legacy_args.pop("report_to", None)
+    try:
+        return TrainingArguments(
+            **legacy_args,
+            evaluate_during_training=True,
+        )
+    except TypeError:
+        return TrainingArguments(**legacy_args)
 
 
 def berts_orchestrated_tune(

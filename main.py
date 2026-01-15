@@ -12,7 +12,7 @@ parser.add_argument("--data", default="belgium_newspaper_new_filter.csv", type=s
 #I plan to add: (4) Maybe some flags on how expressive to be with different vizualizations
 #I plan to add: (5) Deep Learning Approach with LSTMs? w1
 parser.add_argument("--vizuals", default=False, type=bool, help="Regenerate the graphs for vizualization")
-parser.add_argument("--baseline_training", default=True, type=bool, help="Rerun the scikit baselines?")
+parser.add_argument("--baseline_training", default=False, type=bool, help="Rerun the scikit baselines?")
 parser.add_argument("--api", default=False, type=bool, help="Set to use rerun the API inference (API KEYS ARE NEEDED)")
 parser.add_argument("--target_var", default="political", type=str, help="Target variable to predict: 'political' or 'domestic'")
 parser.add_argument("--verbose", default=True, type=bool, help="Verbose baseline training output")
