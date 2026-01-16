@@ -51,6 +51,7 @@ parser.add_argument("--bert_zero_batch_size", default=8, type=int, help="Zero-sh
 
 # ChatGPT flags
 parser.add_argument("--api", default=False, type=bool, help="Set to use rerun the API inference (API KEYS ARE NEEDED)")
+parser.add_argument("--api_max_samples", default=None, type=int, help="Limit API predictions for quick tests")
 
 def _metrics_path(outputs_dir, base_name, target_var):
     filename = f"{base_name}_{target_var}.csv".replace("/", "_")
@@ -117,7 +118,12 @@ def main(main_args):
     if main_args.api:
         from scripts import api_models
 
-        f1 = api_models.send_requests(main_args.target_var, data_path=main_args.data, seed=main_args.seed)
+        f1 = api_models.send_requests(
+            main_args.target_var,
+            data_path=main_args.data,
+            seed=main_args.seed,
+            max_samples=main_args.api_max_samples,
+        )
         if main_args.save_metrics:
             pred_path = Path(f"predictions_{main_args.target_var}_{api_models.model}.csv".replace("/", "_"))
             n_samples = None

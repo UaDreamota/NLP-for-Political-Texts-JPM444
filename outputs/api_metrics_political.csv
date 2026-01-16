@@ -1,0 +1,2 @@
+model,target_var,data_path,f1,n_samples,positive_rate,predictions_path
+gpt-5-mini,political,data/belgium_newspaper_new_filter.csv,0.7916574217883293,3864,0.4754140786749482,predictions_political_gpt-5-mini.csv
