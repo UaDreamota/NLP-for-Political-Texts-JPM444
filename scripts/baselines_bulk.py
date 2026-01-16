@@ -1,9 +1,11 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import time
+import random
 
 import pandas as pd
+import numpy as np
 
 from sklearn.base import BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -21,7 +23,7 @@ from scripts.data_processing import load_processing
 class Candidate:
     name: str
     pipe: BaseEstimator
-    params: Dict[str, Any]
+    params: Union[Dict[str, Any], List[Dict[str, Any]]]
 
 
 models = [
@@ -33,37 +35,62 @@ models = [
                 ("clf", LogisticRegression(solver="saga", max_iter=2000)),
             ]
         ),
-        params={
-            "vec__ngram_range": [(1, 1), (1, 2)],
-            "vec__min_df": [1, 2],
-            "vec__max_df": [0.9, 1.0],
-            "vec__sublinear_tf": [False, True],
-            "clf__C": [0.1, 1.0, 10.0],
-            "clf__class_weight": [None, "balanced"],
-        },
+        params=[
+            {
+                "vec__analyzer": ["word"],
+                "vec__ngram_range": [(1, 2)],
+                "vec__min_df": [0.001, 0.005],
+                "vec__max_df": [0.9],
+                "vec__sublinear_tf": [True],
+                "vec__stop_words": [None, "english"],
+                "clf__C": [0.1, 1.0, 10.0],
+                "clf__class_weight": [None, "balanced"],
+            },
+            {
+                "vec__analyzer": ["char_wb"],
+                "vec__ngram_range": [(3, 5)],
+                "vec__min_df": [0.002],
+                "vec__max_df": [0.9],
+                "vec__sublinear_tf": [True],
+                "clf__C": [1.0],
+                "clf__class_weight": [None, "balanced"],
+            },
+        ],
     ),
     Candidate(
         name="tfidf_linear_svm",
         pipe=Pipeline([("vec", TfidfVectorizer()), ("clf", LinearSVC(max_iter=5000))]),
-        params={
-            "vec__ngram_range": [(1, 1), (3, 6)],
-            "vec__min_df": [1, 2],
-            "vec__max_df": [0.9, 1.0],
-            "vec__max_features": [None, 10000, 20000],
-            "vec__sublinear_tf": [False, True],
-            "clf__C": [0.1, 1.0, 3],
-            "clf__class_weight": [None, "balanced"],
-
-        },
+        params=[
+            {
+                "vec__analyzer": ["word"],
+                "vec__ngram_range": [(1, 2)],
+                "vec__min_df": [0.001, 0.005],
+                "vec__max_df": [0.9],
+                "vec__max_features": [100000],
+                "vec__sublinear_tf": [True],
+                "vec__stop_words": [None, "english"],
+                "clf__C": [0.1, 1.0, 3],
+                "clf__class_weight": [None, "balanced"],
+            },
+            {
+                "vec__analyzer": ["char_wb"],
+                "vec__ngram_range": [(3, 5)],
+                "vec__min_df": [0.002],
+                "vec__max_df": [0.9],
+                "vec__sublinear_tf": [True],
+                "clf__C": [1.0],
+                "clf__class_weight": [None, "balanced"],
+            },
+        ],
     ),
     Candidate(
         name="tfidf_naive_bayes",
         pipe=Pipeline([("vec", TfidfVectorizer()), ("clf", MultinomialNB())]),
         params={
             "vec__ngram_range": [(1, 1), (1, 2)],
-            "vec__min_df": [1, 2],
-            "vec__max_df": [0.9, 1.0],
-            "vec__sublinear_tf": [False, True],
+            "vec__min_df": [0.001, 0.005],
+            "vec__max_df": [0.9],
+            "vec__sublinear_tf": [True],
             "clf__alpha": [0.1, 1.0],
         },
     ),
@@ -77,8 +104,8 @@ models = [
         ),
         params={
             "vec__ngram_range": [(1, 1), (1, 2)],
-            "vec__min_df": [1, 2],
-            "vec__max_df": [0.9, 1.0],
+            "vec__min_df": [0.001, 0.005],
+            "vec__max_df": [0.9],
             "clf__C": [0.1, 1.0, 10.0],
             "clf__class_weight": [None, "balanced"],
         },
@@ -88,8 +115,8 @@ models = [
         pipe=Pipeline([("vec", CountVectorizer()), ("clf", LinearSVC(max_iter=5000))]),
         params={
             "vec__ngram_range": [(1, 1), (1, 2)],
-            "vec__min_df": [1, 2],
-            "vec__max_df": [0.9, 1.0],
+            "vec__min_df": [0.001, 0.005],
+            "vec__max_df": [0.9],
             "clf__C": [0.1, 1.0, 10.0],
             "clf__class_weight": [None, "balanced"],
         },
@@ -109,6 +136,8 @@ def run_baselines(
     grid_verbose: int = 2,
     model_names: Optional[List[str]] = None,
 ) -> pd.DataFrame:
+    random.seed(random_state)
+    np.random.seed(random_state)
     bg = load_processing(data_path)
     if target_var not in bg.columns:
         raise ValueError(f"Target column '{target_var}' not found in data")
@@ -143,6 +172,8 @@ def run_baselines(
 
     results = []
     for idx, candidate in enumerate(candidate_models, start=1):
+        if "clf__random_state" in candidate.pipe.get_params():
+            candidate.pipe.set_params(clf__random_state=random_state)
         if verbose:
             print(f"[baseline] Starting {idx}/{len(candidate_models)}: {candidate.name}")
 
@@ -181,6 +212,7 @@ def run_baselines(
                 "model": candidate.name,
                 "f1": f1,
                 "best_params": best_params,
+                "fit_time_s": elapsed,
             }
         )
         print(f"[baseline] {candidate.name}: f1={f1:.4f}")

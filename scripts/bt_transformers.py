@@ -2,6 +2,8 @@
 
 from typing import Optional
 
+import pandas as pd
+
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
@@ -16,6 +18,7 @@ from transformers import (
     Trainer,
     TrainingArguments,
     pipeline,
+    set_seed,
 )
 
 from scripts.data_processing import load_processing
@@ -63,7 +66,11 @@ def train_transformer_model(
     weight_decay: float = 0.01,
     dropout: Optional[float] = None,
     output_dir: str = "outputs/bt_transformers",
+    log_history_path: Optional[str] = None,
+    seed: Optional[int] = None,
 ):
+    if seed is not None:
+        set_seed(seed)
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
     config = AutoConfig.from_pretrained(model_name, num_labels=num_labels)
     if dropout is not None:
@@ -86,6 +93,9 @@ def train_transformer_model(
         logging_steps=50,
         report_to="none",
     )
+    if seed is not None:
+        base_args["seed"] = seed
+        base_args["data_seed"] = seed
     training_args = _build_training_args(base_args)
 
     trainer = Trainer(
@@ -100,6 +110,8 @@ def train_transformer_model(
 
     trainer.train()
     metrics = trainer.evaluate()
+    if log_history_path:
+        pd.DataFrame(trainer.state.log_history).to_csv(log_history_path, index=False)
     print(f"[transformers] Eval metrics: {metrics}")
     return metrics
 
@@ -152,7 +164,10 @@ def berts_orchestrated_tune(
     batch_size: int = 8,
     test_size: float = 0.2,
     random_state: int = 42,
+    log_history_path: Optional[str] = None,
 ):
+    if random_state is not None:
+        set_seed(random_state)
     data = load_processing(data_path)
     if target_var not in data.columns:
         raise ValueError(f"Target column '{target_var}' not found in data")
@@ -178,6 +193,8 @@ def berts_orchestrated_tune(
         batch_size=batch_size,
         weight_decay=weight_decay,
         dropout=dropout,
+        log_history_path=log_history_path,
+        seed=random_state,
     )
 
 
@@ -190,6 +207,8 @@ def berts_orchestrated_zero(
     max_samples: Optional[int] = None,
     batch_size: int = 8,
 ):
+    if random_state is not None:
+        set_seed(random_state)
     data = load_processing(data_path)
     if target_var not in data.columns:
         raise ValueError(f"Target column '{target_var}' not found in data")

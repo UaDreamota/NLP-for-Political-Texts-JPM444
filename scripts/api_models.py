@@ -20,8 +20,6 @@ from scripts.data_processing import load_processing
 target_var = None #political or domestic
 bg = None
 
-random.seed(42)
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(REPO_ROOT / ".env")
 
@@ -34,12 +32,17 @@ PROMPT = ""
 
 
 
-def split_data(target):
+def split_data(target, seed=42):
     if target not in ['domestic','political']:
         raise ValueError("Incorrect target variable. Only 'domestic' or 'political' are allowed")
     global target_var
     target_var = target
-    X_train, X_test, y_train, y_test = train_test_split(bg['description'], bg[target], test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        bg['description'],
+        bg[target],
+        test_size=0.2,
+        random_state=seed,
+    )
     return  X_train, X_test, y_train, y_test
 
 def _get_client():
@@ -68,8 +71,9 @@ def predict_one(txt, json_key):
         return pred
 
 
-def send_requests(target_var, data_path=None):
+def send_requests(target_var, data_path=None, seed=42):
     global bg, PROMPT
+    random.seed(seed)
     if data_path is None:
         data_path = REPO_ROOT / "data" / "belgium_newspaper_new_filter.csv"
     bg = load_processing(data_path)
@@ -81,7 +85,7 @@ def send_requests(target_var, data_path=None):
         print(f"F1 (pos_label=1): {f1:.4f}")
         return f1
 
-    X_train, X_test, y_train, y_test = split_data(target_var)
+    X_train, X_test, y_train, y_test = split_data(target_var, seed=seed)
     if target_var == "political":
         json_key = "political"
         PROMPT = """You are a political expert that knows all languages in the world. you are given articles \
