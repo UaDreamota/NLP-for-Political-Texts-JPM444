@@ -189,13 +189,36 @@ def send_requests(target_var, data_path=None, seed=42, max_samples=None):
         y_test = y_test.iloc[:max_samples]
     if target_var == "political":
         json_key = "political"
-        PROMPT = """You are a political expert that knows all languages in the world. you are given articles \
-        from dutch newspaper with ranging from 1999 to 2008. you need to critically assess whether this\
-        article's topic is politics. if so, code it as 1, otherwise code it as 0.
-        Return JSON exactly: {{"political": 0 or 1}}
+        PROMPT = """You are performing a binary topic classification task.
 
-        Text:
-        {txt}"""
+Goal:
+Determine whether the main topic of the following newspaper article is POLITICS.
+
+Definition:
+Code the article as political (1) if its primary focus is on:
+- Government, public policy, legislation, or regulation
+- Political parties, elections, campaigns, or voting
+- Politicians or public officials acting in an official or political role
+- International relations, diplomacy, war, or geopolitical conflict
+- Public administration, state institutions, or governance
+- Political ideology, political movements, or political protests
+
+Code the article as non-political (0) if:
+- Politics is only mentioned incidentally or as background
+- The focus is primarily cultural, economic, sports-related, criminal, scientific, or personal
+- Politicians appear only in a non-political or personal context
+- The article reports events without political decision-making, conflict, or policy relevance
+
+Decision rule:
+If politics is the central subject of the article, return 1.
+If politics is secondary or absent, return 0.
+
+Output format:
+Return ONLY valid JSON, with no additional text:
+{{"political": 0 or 1}}
+
+Article text:
+{txt}"""
     elif target_var == "domestic":
         json_key = "domestic"
         PROMPT = """You are a political expert that knows all languages in the world. you are given articles \
@@ -210,7 +233,7 @@ def send_requests(target_var, data_path=None, seed=42, max_samples=None):
         raise ValueError("Incorrect target variable. Only 'domestic' or 'political' are allowed")
 
     if PROMPT.strip() == "":
-        raise ValueError("No prompt was selected, but the variable is set correctly")
+        raise ValueError("No prompt was selected, but the variable is set correctly. For some reason...")
 
     y_pred = [predict_one(txt, json_key=json_key) for txt in X_test]
 

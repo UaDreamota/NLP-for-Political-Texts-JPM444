@@ -1,9 +1,7 @@
 import argparse
 import json
-import random
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from scripts.baselines_bulk import run_baselines
@@ -23,7 +21,6 @@ parser.add_argument("--data", default="data/belgium_newspaper_new_filter.csv", t
 parser.add_argument("--vizuals", default=True, type=bool, help="Regenerate the graphs for vizualization")
 parser.add_argument("--save_metrics", default=True, type=bool, help="Save model params/metrics to CSV files")
 parser.add_argument("--outputs_dir", default="outputs", type=str, help="Directory to write metrics CSVs")
-
 
 
 # Scikit-learn model (general supervised ones) flags
@@ -51,7 +48,6 @@ parser.add_argument("--bert_zero_batch_size", default=8, type=int, help="Zero-sh
 
 # ChatGPT flags
 parser.add_argument("--api", default=False, type=bool, help="Set to use rerun the API inference (API KEYS ARE NEEDED)")
-parser.add_argument("--api_max_samples", default=None, type=int, help="Limit API predictions for quick tests")
 
 def _metrics_path(outputs_dir, base_name, target_var):
     filename = f"{base_name}_{target_var}.csv".replace("/", "_")
@@ -85,8 +81,6 @@ def _append_csv(df, path):
 
 
 def main(main_args):
-    random.seed(main_args.seed)
-    np.random.seed(main_args.seed)
     if main_args.save_metrics:
         Path(main_args.outputs_dir).mkdir(parents=True, exist_ok=True)
 
@@ -95,7 +89,6 @@ def main(main_args):
         results = run_baselines(
             main_args.data,
             main_args.target_var,
-            random_state=main_args.seed,
             cv=main_args.cv,
             n_jobs=main_args.n_jobs,
             verbose=main_args.verbose,
@@ -118,12 +111,7 @@ def main(main_args):
     if main_args.api:
         from scripts import api_models
 
-        f1 = api_models.send_requests(
-            main_args.target_var,
-            data_path=main_args.data,
-            seed=main_args.seed,
-            max_samples=main_args.api_max_samples,
-        )
+        f1 = api_models.send_requests(main_args.target_var, data_path=main_args.data)
         if main_args.save_metrics:
             pred_path = Path(f"predictions_{main_args.target_var}_{api_models.model}.csv".replace("/", "_"))
             n_samples = None
@@ -162,7 +150,6 @@ def main(main_args):
             model_name=main_args.bert_model or None,
             max_length=main_args.bert_max_length,
             batch_size=main_args.bert_batch_size,
-            random_state=main_args.seed,
             log_history_path=str(log_history_path) if log_history_path else None,
         )
         if main_args.save_metrics:
@@ -192,7 +179,6 @@ def main(main_args):
             model_name=main_args.bert_zero_model or None,
             max_samples=main_args.bert_zero_max_samples,
             batch_size=main_args.bert_zero_batch_size,
-            random_state=main_args.seed,
         )
         if main_args.save_metrics:
             model_name = main_args.bert_zero_model or DEFAULT_MODEL_ZERO
