@@ -1,0 +1,2 @@
+model,target_var,data_path,epochs,lr,weight_decay,dropout,max_length,batch_size,eval_loss,eval_f1,eval_accuracy,eval_runtime,eval_samples_per_second,eval_steps_per_second,epoch
+xlm-roberta-base,political,data/belgium_newspaper_new_filter.csv,3,2e-05,0.01,,256,8,0.4797047972679138,0.8577517314864145,0.8618012422360248,569.3401,6.787,0.848,3.0
