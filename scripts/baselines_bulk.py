@@ -8,12 +8,15 @@ import pandas as pd
 import numpy as np
 
 from sklearn.base import BaseEstimator
+from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.kernel_approximation import PolynomialCountSketch
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 from sklearn.model_selection import GridSearchCV, ParameterGrid, train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.svm import LinearSVC
 
 from scripts.data_processing import load_processing
@@ -24,6 +27,23 @@ class Candidate:
     name: str
     pipe: BaseEstimator
     params: Union[Dict[str, Any], List[Dict[str, Any]]]
+
+
+def _prepare_features(data: pd.DataFrame) -> pd.DataFrame:
+    features = pd.DataFrame(index=data.index)
+    features["description"] = data["description"].fillna("")
+    if "headline" in data.columns:
+        features["headline"] = data["headline"].fillna("")
+    else:
+        features["headline"] = ""
+
+    if "date" in data.columns:
+        year = pd.to_datetime(data["date"], dayfirst=True, errors="coerce").dt.year
+        features["year"] = year.fillna(-1).astype(int).astype(str)
+    else:
+        features["year"] = "-1"
+
+    return features
 
 
 models = [
@@ -56,6 +76,46 @@ models = [
                 "clf__class_weight": [None, "balanced"],
             },
         ],
+    ),
+    Candidate(
+        name="tfidf_log_reg_desc_headline_year",
+        pipe=Pipeline(
+            [
+                (
+                    "features",
+                    ColumnTransformer(
+                        transformers=[
+                            (
+                                "desc",
+                                TfidfVectorizer(
+                                    analyzer="char_wb",
+                                    ngram_range=(3, 5),
+                                    min_df=0.002,
+                                    max_df=0.9,
+                                    sublinear_tf=True,
+                                ),
+                                "description",
+                            ),
+                            (
+                                "headline",
+                                TfidfVectorizer(
+                                    analyzer="char_wb",
+                                    ngram_range=(3, 5),
+                                    min_df=0.002,
+                                    max_df=0.9,
+                                    sublinear_tf=True,
+                                ),
+                                "headline",
+                            ),
+                            ("year", OneHotEncoder(handle_unknown="ignore"), ["year"]),
+                        ],
+                        remainder="drop",
+                    ),
+                ),
+                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+            ]
+        ),
+        params={},
     ),
     Candidate(
         name="tfidf_linear_svm",
@@ -93,6 +153,66 @@ models = [
             "vec__sublinear_tf": [True],
             "clf__alpha": [0.1, 1.0],
         },
+    ),
+    Candidate(
+        name="tfidf_log_reg_poly2",
+        pipe=Pipeline(
+            [
+                (
+                    "vec",
+                    TfidfVectorizer(
+                        analyzer="char_wb",
+                        ngram_range=(3, 5),
+                        min_df=0.002,
+                        max_df=0.9,
+                        sublinear_tf=True,
+                    ),
+                ),
+                ("poly", PolynomialCountSketch(degree=2, coef0=1, n_components=8192)),
+                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+            ]
+        ),
+        params={},
+    ),
+    Candidate(
+        name="tfidf_log_reg_poly4",
+        pipe=Pipeline(
+            [
+                (
+                    "vec",
+                    TfidfVectorizer(
+                        analyzer="char_wb",
+                        ngram_range=(3, 5),
+                        min_df=0.002,
+                        max_df=0.9,
+                        sublinear_tf=True,
+                    ),
+                ),
+                ("poly", PolynomialCountSketch(degree=4, coef0=1, n_components=8192)),
+                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+            ]
+        ),
+        params={},
+    ),
+    Candidate(
+        name="tfidf_log_reg_poly5",
+        pipe=Pipeline(
+            [
+                (
+                    "vec",
+                    TfidfVectorizer(
+                        analyzer="char_wb",
+                        ngram_range=(3, 5),
+                        min_df=0.002,
+                        max_df=0.9,
+                        sublinear_tf=True,
+                    ),
+                ),
+                ("poly", PolynomialCountSketch(degree=5, coef0=1, n_components=8192)),
+                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+            ]
+        ),
+        params={},
     ),
     Candidate(
         name="count_log_reg",
@@ -142,17 +262,24 @@ def run_baselines(
     if target_var not in bg.columns:
         raise ValueError(f"Target column '{target_var}' not found in data")
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        bg["description"],
-        bg[target_var],
+    features = _prepare_features(bg)
+    y = bg[target_var]
+    train_idx, test_idx = train_test_split(
+        bg.index.to_numpy(),
         test_size=test_size,
         random_state=random_state,
     )
+    X_train_text = features.loc[train_idx, "description"]
+    X_test_text = features.loc[test_idx, "description"]
+    X_train_full = features.loc[train_idx]
+    X_test_full = features.loc[test_idx]
+    y_train = y.loc[train_idx]
+    y_test = y.loc[test_idx]
 
     if verbose:
         total = len(bg)
-        train_size = len(X_train)
-        test_size_count = len(X_test)
+        train_size = len(X_train_text)
+        test_size_count = len(X_test_text)
         label_dist = bg[target_var].value_counts(normalize=True).to_dict()
         print(f"[baseline] Data: {data_path}")
         print(f"[baseline] Target: {target_var}")
@@ -172,10 +299,17 @@ def run_baselines(
 
     results = []
     for idx, candidate in enumerate(candidate_models, start=1):
-        if "clf__random_state" in candidate.pipe.get_params():
+        pipe_params = candidate.pipe.get_params()
+        if "clf__random_state" in pipe_params:
             candidate.pipe.set_params(clf__random_state=random_state)
+        if "poly__random_state" in pipe_params:
+            candidate.pipe.set_params(poly__random_state=random_state)
         if verbose:
             print(f"[baseline] Starting {idx}/{len(candidate_models)}: {candidate.name}")
+
+        uses_dataframe_features = isinstance(getattr(candidate.pipe, "steps", [[None, None]])[0][1], ColumnTransformer)
+        X_train = X_train_full if uses_dataframe_features else X_train_text
+        X_test = X_test_full if uses_dataframe_features else X_test_text
 
         if candidate.params:
             param_count = len(ParameterGrid(candidate.params))

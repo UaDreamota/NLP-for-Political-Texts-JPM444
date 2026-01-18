@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import json
 import time
+from datetime import datetime
 
 import random
 import pandas as pd
@@ -39,6 +40,14 @@ _supports_temperature_zero = None
 _supports_response_format = None
 _client = None
 
+
+def predictions_path(target, seed=42, max_samples=None, scope="test"):
+    filename = f"predictions_{target}_{model}_seed{seed}.csv".replace("/", "_")
+    if scope == "all":
+        filename = filename.replace(".csv", "_all.csv")
+    if max_samples is not None:
+        filename = filename.replace(".csv", f"_n{int(max_samples)}.csv")
+    return Path(filename)
 
 
 def split_data(target, seed=42):
@@ -167,26 +176,29 @@ def predict_one(txt, json_key):
         )
 
 
-def send_requests(target_var, data_path=None, seed=42, max_samples=None):
+def send_requests(target_var, data_path=None, seed=42, max_samples=None, scope="test", log_every=50, flush_every=50):
     global bg, PROMPT
     random.seed(seed)
     if data_path is None:
         data_path = REPO_ROOT / "data" / "belgium_newspaper_new_filter.csv"
     bg = load_processing(data_path)
-    out_path = f"predictions_{target_var}_{model}.csv".replace("/", "_")
-    if max_samples is not None:
-        out_path = out_path.replace(".csv", f"_n{int(max_samples)}.csv")
-    if os.path.exists(out_path):
-        pred_df = pd.read_csv(out_path)
-        f1 = f1_score(pred_df["y_true"], pred_df["y_pred"], pos_label=1)
-        print(f"[cache] Loaded predictions from {out_path}")
-        print(f"F1 (pos_label=1): {f1:.4f}")
-        return f1
 
-    X_train, X_test, y_train, y_test = split_data(target_var, seed=seed)
+    out_path = predictions_path(target_var, seed=seed, max_samples=max_samples, scope=scope)
+
+    dataset_n = len(bg)
+    if scope == "all":
+        X_run = bg["description"]
+        y_run = bg[target_var]
+        split_summary = f"all_rows={dataset_n}"
+    elif scope == "test":
+        X_train, X_run, y_train, y_run = split_data(target_var, seed=seed)
+        split_summary = f"dataset={dataset_n} train={len(X_train)} test={len(X_run)} (test_size=0.2)"
+    else:
+        raise ValueError("scope must be 'test' or 'all'")
+
     if max_samples is not None:
-        X_test = X_test.iloc[:max_samples]
-        y_test = y_test.iloc[:max_samples]
+        X_run = X_run.iloc[:max_samples]
+        y_run = y_run.iloc[:max_samples]
     if target_var == "political":
         json_key = "political"
         PROMPT = """You are performing a binary topic classification task.
@@ -235,15 +247,93 @@ Article text:
     if PROMPT.strip() == "":
         raise ValueError("No prompt was selected, but the variable is set correctly. For some reason...")
 
-    y_pred = [predict_one(txt, json_key=json_key) for txt in X_test]
+    n_total = len(y_run)
+    if n_total == 0:
+        raise ValueError("No test samples were selected (n_total == 0).")
 
-    f1 = f1_score(y_test, y_pred, pos_label=1)
+    print(f"[api] model={model} target={target_var} scope={scope} seed={seed} samples={n_total} out={out_path}")
+    print(f"[api] {split_summary}")
+
+    existing_rows = None
+    if out_path.exists():
+        try:
+            existing_rows = pd.read_csv(out_path, on_bad_lines="skip")
+        except Exception as exc:
+            backup_path = out_path.with_suffix(out_path.suffix + f".corrupt_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+            out_path.rename(backup_path)
+            print(f"[api] Existing predictions file could not be read; moved to {backup_path} ({type(exc).__name__}: {exc})")
+            existing_rows = None
+
+    start_at = 0
+    y_pred = []
+    if existing_rows is not None and not existing_rows.empty:
+        if "y_pred" in existing_rows.columns and "y_true" in existing_rows.columns:
+            existing_rows = existing_rows.iloc[:n_total].copy()
+            already_done = len(existing_rows)
+
+            expected_y_true = list(map(int, y_run.iloc[:already_done].tolist()))
+            existing_y_true = list(map(int, existing_rows["y_true"].tolist()))
+            y_true_matches = expected_y_true == existing_y_true
+
+            idx_matches = True
+            if "row_index" in existing_rows.columns:
+                expected_idx = list(map(int, X_run.index[:already_done].tolist()))
+                existing_idx = list(map(int, existing_rows["row_index"].tolist()))
+                idx_matches = expected_idx == existing_idx
+
+            if not y_true_matches or not idx_matches:
+                backup_path = out_path.with_suffix(out_path.suffix + f".mismatch_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+                out_path.rename(backup_path)
+                print(f"[api] Existing predictions did not match current split; moved to {backup_path} and restarting.")
+            else:
+                y_pred = list(map(int, existing_rows["y_pred"].tolist()))
+                start_at = already_done
+                if start_at >= n_total:
+                    f1 = f1_score(y_run, y_pred[:n_total], pos_label=1)
+                    print(f"[cache] Loaded predictions from {out_path}")
+                    print(f"F1 (pos_label=1): {f1:.4f}")
+                    return f1
+                print(f"[api] Resuming: {start_at}/{n_total} done, {n_total - start_at} left")
+
+    run_start = time.perf_counter()
+    rows_to_write = []
+    wrote_header = out_path.exists() and out_path.stat().st_size > 0
+
+    for i in range(start_at, n_total):
+        if log_every and (i == start_at or (i % log_every == 0)):
+            elapsed = time.perf_counter() - run_start
+            processed = i - start_at
+            rate = processed / elapsed if elapsed > 0 and processed > 0 else None
+            remaining = n_total - i
+            eta = (remaining / rate) if rate else None
+            rate_str = f"{rate:.3f}/s" if rate else "n/a"
+            eta_str = f"{eta/60:.1f} min" if eta else "n/a"
+            print(f"[api] progress {i}/{n_total} (left {remaining}) | elapsed {elapsed/60:.1f} min | rate {rate_str} | eta {eta_str}")
+
+        row_index = int(X_run.index[i])
+        txt = X_run.iloc[i]
+        y_true = int(y_run.iloc[i])
+        try:
+            pred = predict_one(txt, json_key=json_key)
+        except Exception as exc:
+            print(f"[api] ERROR at {i}/{n_total} row_index={row_index}: {type(exc).__name__}: {exc}")
+            raise
+
+        y_pred.append(int(pred))
+        rows_to_write.append({"row_index": row_index, "y_true": y_true, "y_pred": int(pred)})
+
+        should_flush = flush_every and len(rows_to_write) >= flush_every
+        is_last = i == n_total - 1
+        if should_flush or is_last:
+            df_out = pd.DataFrame(rows_to_write, columns=["row_index", "y_true", "y_pred"])
+            df_out.to_csv(out_path, mode="a", header=not wrote_header, index=False)
+            wrote_header = True
+            rows_to_write.clear()
+
+    f1 = f1_score(y_run, y_pred, pos_label=1)
     print(f"Target: {target_var}")
-    print(f"Test size: {len(y_test)}")
-    print(f"Positive rate: {sum(y_test)/len(y_test):.4f}")
+    print(f"Test size: {len(y_run)}")
+    print(f"Positive rate: {sum(y_run)/len(y_run):.4f}")
     print(f"F1 (pos_label=1): {f1:.4f}")
-   
-    pred_df = pd.DataFrame({"y_true": list(y_test), "y_pred": y_pred})
-    pred_df.to_csv(out_path, index=False)
 
     return f1 

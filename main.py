@@ -48,6 +48,10 @@ parser.add_argument("--bert_zero_batch_size", default=8, type=int, help="Zero-sh
 
 # ChatGPT flags
 parser.add_argument("--api", default=False, type=bool, help="Set to use rerun the API inference (API KEYS ARE NEEDED)")
+parser.add_argument("--api_max_samples", default=None, type=int, help="Limit API predictions for quick tests")
+parser.add_argument("--api_scope", default="test", type=str, help="Which rows to send to API: 'test' (20 percent holdout) or 'all'")
+parser.add_argument("--api_log_every", default=50, type=int, help="Print API progress every N samples")
+parser.add_argument("--api_flush_every", default=50, type=int, help="Append API predictions to CSV every N samples")
 
 def _metrics_path(outputs_dir, base_name, target_var):
     filename = f"{base_name}_{target_var}.csv".replace("/", "_")
@@ -111,9 +115,22 @@ def main(main_args):
     if main_args.api:
         from scripts import api_models
 
-        f1 = api_models.send_requests(main_args.target_var, data_path=main_args.data)
+        f1 = api_models.send_requests(
+            main_args.target_var,
+            data_path=main_args.data,
+            seed=main_args.seed,
+            max_samples=main_args.api_max_samples,
+            scope=main_args.api_scope,
+            log_every=main_args.api_log_every,
+            flush_every=main_args.api_flush_every,
+        )
         if main_args.save_metrics:
-            pred_path = Path(f"predictions_{main_args.target_var}_{api_models.model}.csv".replace("/", "_"))
+            pred_path = api_models.predictions_path(
+                main_args.target_var,
+                seed=main_args.seed,
+                max_samples=main_args.api_max_samples,
+                scope=main_args.api_scope,
+            )
             n_samples = None
             positive_rate = None
             if pred_path.exists():
@@ -126,6 +143,9 @@ def main(main_args):
                 "model": api_models.model,
                 "target_var": main_args.target_var,
                 "data_path": main_args.data,
+                "seed": main_args.seed,
+                "max_samples": main_args.api_max_samples,
+                "scope": main_args.api_scope,
                 "f1": f1,
                 "n_samples": n_samples,
                 "positive_rate": positive_rate,
