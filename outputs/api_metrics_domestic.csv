@@ -1,0 +1,2 @@
+model,target_var,data_path,seed,max_samples,scope,f1,n_samples,positive_rate,predictions_path
+gpt-5-mini,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.8487895716945997,3864,0.7166149068322981,predictions_domestic_gpt-5-mini_seed42.csv
