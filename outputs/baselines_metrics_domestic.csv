@@ -1,0 +1,10 @@
+model,f1,best_params,fit_time_s,target_var,cv,n_jobs,grid_verbose,data_path,baseline_models
+tfidf_linear_svm,0.9447111111111111,"{""clf__C"": 1.0, ""clf__class_weight"": null, ""vec__analyzer"": ""word"", ""vec__max_df"": 0.9, ""vec__max_features"": 100000, ""vec__min_df"": 0.001, ""vec__ngram_range"": [1, 2], ""vec__stop_words"": null, ""vec__sublinear_tf"": true}",1154.1237435000367,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+tfidf_log_reg,0.9430070562692238,"{""clf__C"": 10.0, ""clf__class_weight"": ""balanced"", ""vec__analyzer"": ""word"", ""vec__max_df"": 0.9, ""vec__min_df"": 0.001, ""vec__ngram_range"": [1, 2], ""vec__stop_words"": null, ""vec__sublinear_tf"": true}",911.9295454000239,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+tfidf_log_reg_desc_headline_year,0.9419496166484118,{},68.45947620004881,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+count_log_reg,0.9407367859049653,"{""clf__C"": 0.1, ""clf__class_weight"": null, ""vec__max_df"": 0.9, ""vec__min_df"": 0.001, ""vec__ngram_range"": [1, 1]}",3470.416026699997,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+tfidf_log_reg_poly2,0.9346440924813398,{},103.92515310004819,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+count_linear_svm,0.9330960854092527,"{""clf__C"": 0.1, ""clf__class_weight"": null, ""vec__max_df"": 0.9, ""vec__min_df"": 0.001, ""vec__ngram_range"": [1, 2]}",1009.4704413000145,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+tfidf_naive_bayes,0.9274740978921043,"{""clf__alpha"": 0.1, ""vec__max_df"": 0.9, ""vec__min_df"": 0.001, ""vec__ngram_range"": [1, 2], ""vec__sublinear_tf"": true}",141.40746519999811,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+tfidf_log_reg_poly4,0.9091897770527461,{},185.06116129999282,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all
+tfidf_log_reg_poly5,0.8916318751134508,{},251.62018059997354,domestic,5,1,2,data/belgium_newspaper_new_filter.csv,all

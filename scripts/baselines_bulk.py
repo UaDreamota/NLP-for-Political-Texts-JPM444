@@ -52,7 +52,7 @@ models = [
         pipe=Pipeline(
             [
                 ("vec", TfidfVectorizer()),
-                ("clf", LogisticRegression(solver="saga", max_iter=2000)),
+                ("clf", LogisticRegression(solver="saga", max_iter=10000)),
             ]
         ),
         params=[
@@ -112,14 +112,14 @@ models = [
                         remainder="drop",
                     ),
                 ),
-                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+                ("clf", LogisticRegression(solver="saga", max_iter=10000, C=1.0, class_weight="balanced")),
             ]
         ),
         params={},
     ),
     Candidate(
         name="tfidf_linear_svm",
-        pipe=Pipeline([("vec", TfidfVectorizer()), ("clf", LinearSVC(max_iter=5000))]),
+        pipe=Pipeline([("vec", TfidfVectorizer()), ("clf", LinearSVC(max_iter=10000))]),
         params=[
             {
                 "vec__analyzer": ["word"],
@@ -169,7 +169,7 @@ models = [
                     ),
                 ),
                 ("poly", PolynomialCountSketch(degree=2, coef0=1, n_components=8192)),
-                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+                ("clf", LogisticRegression(solver="saga", max_iter=10000, C=1.0, class_weight="balanced")),
             ]
         ),
         params={},
@@ -189,7 +189,7 @@ models = [
                     ),
                 ),
                 ("poly", PolynomialCountSketch(degree=4, coef0=1, n_components=8192)),
-                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+                ("clf", LogisticRegression(solver="saga", max_iter=10000, C=1.0, class_weight="balanced")),
             ]
         ),
         params={},
@@ -209,7 +209,7 @@ models = [
                     ),
                 ),
                 ("poly", PolynomialCountSketch(degree=5, coef0=1, n_components=8192)),
-                ("clf", LogisticRegression(solver="saga", max_iter=4000, C=1.0, class_weight="balanced")),
+                ("clf", LogisticRegression(solver="saga", max_iter=10000, C=1.0, class_weight="balanced")),
             ]
         ),
         params={},
@@ -219,7 +219,7 @@ models = [
         pipe=Pipeline(
             [
                 ("vec", CountVectorizer()),
-                ("clf", LogisticRegression(solver="saga", max_iter=2000)),
+                ("clf", LogisticRegression(solver="saga", max_iter=10000)),
             ]
         ),
         params={
@@ -232,7 +232,7 @@ models = [
     ),
     Candidate(
         name="count_linear_svm",
-        pipe=Pipeline([("vec", CountVectorizer()), ("clf", LinearSVC(max_iter=5000))]),
+        pipe=Pipeline([("vec", CountVectorizer()), ("clf", LinearSVC(max_iter=10000))]),
         params={
             "vec__ngram_range": [(1, 1), (1, 2)],
             "vec__min_df": [0.001, 0.005],
