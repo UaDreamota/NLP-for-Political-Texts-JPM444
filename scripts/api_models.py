@@ -25,7 +25,7 @@ bg = None
 REPO_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(REPO_ROOT / ".env")
 
-MODEL = "gpt-5-mini"
+MODEL = "gpt-5.1"
 model = MODEL
 
 SYSTEM = "Return only valid JSON. No extra text."
@@ -233,14 +233,31 @@ Article text:
 {txt}"""
     elif target_var == "domestic":
         json_key = "domestic"
-        PROMPT = """You are a political expert that knows all languages in the world. you are given articles \
-        from dutch newspaper with ranging from 1999 to 2008. you need to critically assess whether this\
-        article's topic is about domestic politics issue or international. \
-        if it is about domestic issue, code it as 1, otherwise code it as 0.
-        Return JSON exactly: {{"domestic": 0 or 1}}
+        PROMPT = """You are performing a binary classification task.
 
-        Text:
-        {txt}"""
+Goal:
+Determine whether the following newspaper article is primarily about DOMESTIC politics (code 1) or INTERNATIONAL politics (code 0).
+
+Code the article as domestic (1) if its main focus is on:
+- National or local government, policy, legislation, regulation, or public administration inside the country
+- Domestic elections, parties, campaigns, coalitions, or politicians acting in a national/local role
+- National security, public safety, justice, or law enforcement within the country
+- Domestic social, economic, cultural, or environmental issues framed around national/local policy
+
+Code the article as international (0) if:
+- The primary focus is foreign governments, diplomacy, treaties, conflicts, or geopolitics
+- Events abroad with no substantive domestic policy/governance angle
+- International organizations, foreign elections, or foreign policy that does not center domestic implications
+
+Decision rule:
+If domestic politics/governance is the central subject, return 1; if the article is mainly about foreign/international politics, return 0.
+
+Output format:
+Return ONLY valid JSON, with no additional text:
+{{"domestic": 0 or 1}}
+
+Article text:
+{txt}"""
     else:
         raise ValueError("Incorrect target variable. Only 'domestic' or 'political' are allowed")
 
