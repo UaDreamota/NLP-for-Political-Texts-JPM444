@@ -22,7 +22,6 @@ parser.add_argument("--vizuals", default=True, type=bool, help="Regenerate the g
 parser.add_argument("--save_metrics", default=True, type=bool, help="Save model params/metrics to CSV files")
 parser.add_argument("--outputs_dir", default="outputs", type=str, help="Directory to write metrics CSVs")
 
-
 # Scikit-learn model (general supervised ones) flags
 parser.add_argument("--baseline_training", default=False, type=bool, help="Rerun the scikit baselines?")
 parser.add_argument("--target_var", default="political", type=str, help="Target variable to predict: 'political' or 'domestic'")
@@ -31,6 +30,19 @@ parser.add_argument("--grid_verbose", default=2, type=int, help="GridSearchCV ve
 parser.add_argument("--cv", default=5, type=int, help="Cross-validation folds for grid search")
 parser.add_argument("--n_jobs", default=1, type=int, help="Parallel jobs for grid search (-1 uses all cores)")
 parser.add_argument("--baseline_models", default="", type=str, help="Comma-separated candidate names to train (e.g. tfidf_log_reg,count_linear_svm)")
+parser.add_argument("--ensemble_training", default=False, type=bool, help="Train an ensemble of the best linear baseline models")
+parser.add_argument(
+    "--ensemble_num_models",
+    default=2,
+    type=int,
+    help="How many top linear models to ensemble (capped at 2)",
+)
+parser.add_argument(
+    "--ensemble_models",
+    default="",
+    type=str,
+    help="Comma-separated baseline model names to consider for the ensemble",
+)
 
 #BERT transformers flags
 parser.add_argument("--transformers_zero", default=False, type=bool, help="Zero-shot predict, evaluate BERT/ROBERTA type models")
@@ -112,6 +124,28 @@ def main(main_args):
                 baseline_df["baseline_models"] = main_args.baseline_models or "all"
                 baseline_path = _metrics_path(main_args.outputs_dir, "baselines_metrics", main_args.target_var)
                 _append_csv(baseline_df, baseline_path)
+    if main_args.ensemble_training:
+        from scripts.ensemble import train_linear_ensemble
+
+        ensemble_models = [m.strip() for m in main_args.ensemble_models.split(",") if m.strip()]
+        ensemble_row, ensemble_members = train_linear_ensemble(
+            main_args.data,
+            main_args.target_var,
+            candidate_names=ensemble_models or None,
+            top_k=main_args.ensemble_num_models,
+            test_size=0.2,
+            scoring="f1",
+            cv=main_args.cv,
+            n_jobs=main_args.n_jobs,
+            random_state=main_args.seed,
+            verbose=main_args.verbose,
+            grid_verbose=main_args.grid_verbose,
+        )
+        if main_args.save_metrics:
+            ensemble_path = _metrics_path(main_args.outputs_dir, "ensemble_metrics", main_args.target_var)
+            _append_csv(pd.DataFrame([ensemble_row]), ensemble_path)
+            ensemble_members_path = _metrics_path(main_args.outputs_dir, "ensemble_member_metrics", main_args.target_var)
+            _append_csv(ensemble_members, ensemble_members_path)
     if main_args.api:
         from scripts import api_models
 

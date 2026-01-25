@@ -25,7 +25,7 @@ bg = None
 REPO_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(REPO_ROOT / ".env")
 
-MODEL = "gpt-5.1"
+MODEL = "gpt-5-mini"
 model = MODEL
 
 SYSTEM = "Return only valid JSON. No extra text."

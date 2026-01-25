@@ -1,0 +1,4 @@
+model,ensemble_f1,members,member_f1,target_var,data_path,top_k_requested,top_k_used,n_candidates_trained,n_linear_candidates,cv,n_jobs,test_size,random_state
+linear_vote,0.8242090784044016,"[""tfidf_log_reg"", ""count_linear_svm""]","{""count_linear_svm"": 0.7685443390964863, ""tfidf_log_reg"": 0.8242090784044016}",political,data/belgium_newspaper_new_filter.csv,7,2,2,2,5,1,0.2,42
+linear_vote,0.8242090784044016,"[""tfidf_log_reg"", ""count_linear_svm""]","{""count_linear_svm"": 0.7685443390964863, ""tfidf_log_reg"": 0.8242090784044016}",political,data/belgium_newspaper_new_filter.csv,3,2,2,2,5,1,0.2,42
+linear_vote,0.8233333333333334,"[""tfidf_linear_svm""]","{""tfidf_linear_svm"": 0.8233333333333334}",political,data/belgium_newspaper_new_filter.csv,3,1,1,1,5,1,0.2,42

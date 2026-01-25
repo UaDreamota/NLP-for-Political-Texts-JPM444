@@ -3,3 +3,4 @@ gpt-5-mini,political,data/belgium_newspaper_new_filter.csv,0.7916574217883293,38
 gpt-5.1,political,data/belgium_newspaper_new_filter.csv,0.7738887695941593,3864,0.4754140786749482,predictions_political_gpt-5.1.csv
 gpt-5.1,political,data/belgium_newspaper_new_filter.csv,0.7738887695941593,3864,0.4754140786749482,predictions_political_gpt-5.1.csv
 gpt-5.1,political,data/belgium_newspaper_new_filter.csv,0.805452865064695,3864,0.4754140786749482,predictions_political_gpt-5.1.csv
+gpt-5-mini,political,data/belgium_newspaper_new_filter.csv,0.8206863218946351,3864,0.4754140786749482,predictions_political_gpt-5-mini_seed42.csv,42,,test

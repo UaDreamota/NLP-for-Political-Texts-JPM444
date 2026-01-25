@@ -3,3 +3,6 @@ gpt-5-mini,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.84878957169
 gpt-5.1,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.8900975243810952,3864,0.7166149068322981,predictions_domestic_gpt-5.1_seed42.csv
 gpt-5.1,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.8900975243810952,3864,0.7166149068322981,predictions_domestic_gpt-5.1_seed42.csv
 gpt-5.1,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.8866161170869336,3864,0.7166149068322981,predictions_domestic_gpt-5.1_seed42.csv
+gpt-5-mini,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.8487895716945997,3864,0.7166149068322981,predictions_domestic_gpt-5-mini_seed42.csv
+gpt-5-mini,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.8487895716945997,3864,0.7166149068322981,predictions_domestic_gpt-5-mini_seed42.csv
+gpt-5-mini,domestic,data/belgium_newspaper_new_filter.csv,42,,test,0.8795370857443451,3864,0.7166149068322981,predictions_domestic_gpt-5-mini_seed42.csv

@@ -86,6 +86,22 @@ python3 main.py \
   --baseline_models tfidf_log_reg,count_linear_svm
 ```
 
+### Ensemble baselines
+```bash
+python3 main.py --ensemble_training True --target_var political
+```
+
+Optional controls:
+```bash
+python3 main.py \
+  --ensemble_training True \
+  --target_var domestic \
+  --ensemble_num_models 2 \
+  --ensemble_models tfidf_log_reg,count_linear_svm
+```
+
+The ensemble always uses the best two linear models (logistic regression / linear SVM variants) from the provided candidates and reports both individual and ensemble metrics to `outputs/ensemble_metrics_*.csv`.
+
 ### Transformer fine-tuning
 ```bash
 python3 main.py --transformers_tune True --target_var political
