@@ -31,18 +31,35 @@ The main dataset is `data/belgium_newspaper_new_filter.csv`. Expected columns:
 - `domestic`: label (0/1).
 
 ## Repository Structure
-- `main.py`: CLI entry point for running baselines, transformers, API models.
-- `scripts/`: model and utility code.
-  - `baselines_bulk.py`: scikit-learn baselines with grid search.
-  - `bt_transformers.py`: transformer fine-tuning and zero-shot classification.
-  - `api_models.py`: API-based LLM labeling (OpenAI).
-  - `data_processing.py`: dataset loading and cleaning.
-  - `vizuals.py`: plots for metrics and training curves(legacy).
-- `data/`: dataset CSV.
-- `outputs/`: saved metrics, plots(legacy), and training logs.
-- `predictions_*.csv`: model predictions written during API runs.
-- `notebooks/`: EDA notebook.
-- `papers/`: background literature for the report.
+```text
+NLP-for-Political-Texts-JPM444/
+├── main.py                           # Entry script (start here)
+├── README.md                         # Project overview and usage
+├── requirements.txt                  # Python dependencies
+├── data                              # Folder with the dataset
+├── scripts/
+│   ├── api_models.py                 # API-based LLM labeling 
+│   ├── baselines_bulk.py             # scikit-learn baselines 
+│   ├── bt_transformers.py            # Transformer fine-tuning, zero-shot
+│   ├── data_processing.py            # Dataset loading and cleaning
+│   ├── ensemble.py                   # Ensemble baselines
+│   ├── error_analysis.py             # Error analysis utilities
+│   ├── models.py                     # Model registry/constants
+│   └── vizuals.py                    # Metrics/plot helpers (legacy)
+├── outputs/
+│   ├── api_metrics_*.csv
+│   ├── baselines_metrics_*.csv
+│   ├── ensemble_metrics_*.csv
+│   ├── transformers_tune_*.csv
+│   ├── bt_transformers/              # Transformer fine-tuning outputs
+│   ├── predictions_api/              # API-model predictions/artifacts
+│   ├── error_analysis/               # Error analysis artifacts
+│   └── plots/                        # Figures/plots
+├── notebooks/
+│   └── eda_year_labels_tokens.ipynb
+├── papers/                           # Background literature (PDFs)
+└── report
+```
 
 ## Setup
 Create a virtual environment and install dependencies:
@@ -157,6 +174,3 @@ Note: I decided not to pursue good plots, so the features is not at all informat
 ## Notes
 - API runs require a valid key and internet access.
 - Transformer training can be slow without GPU support.
-
-
-
